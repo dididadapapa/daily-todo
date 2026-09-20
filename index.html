@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日待办</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --primary: #3b82f6;
+    --todo: #d97706;   --todo-bg: #fef3c7;
+    --doing: #2563eb;  --doing-bg: #dbeafe;
+    --done: #059669;   --done-bg: #d1fae5;
+    --danger: #ef4444; --danger-bg: #fee2e2;
+    --overdue: #d97706;
+    --overdue-bg: #fffbeb;
+    --overdue-border: #fcd34d;
+    --today-bg: #eff6ff;
+    --today-border: #bfdbfe;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 4px 14px rgba(0,0,0,0.07);
+    --sb-track: #e5e7eb;
+    --sb-thumb: #9ca3af;
+    --popup-bg: #ffffff;
+    --popup-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  [data-theme="dark"] {
+    --bg: #0f1115;
+    --card-bg: #1a1d24;
+    --border: #2a2f3a;
+    --text: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --primary: #60a5fa;
+    --todo: #fbbf24;   --todo-bg: #3a2a08;
+    --doing: #60a5fa;  --doing-bg: #1a2f4a;
+    --done: #34d399;   --done-bg: #0a3d2e;
+    --danger: #f87171; --danger-bg: #3a1515;
+    --overdue: #fbbf24;
+    --overdue-bg: #2a2410;
+    --overdue-border: #854d0e;
+    --today-bg: #172a45;
+    --today-border: #1e40af;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow: 0 4px 14px rgba(0,0,0,0.45);
+    --sb-track: #2a2f3a;
+    --sb-thumb: #4b5563;
+    --popup-bg: #1a1d24;
+    --popup-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .app-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--text-secondary);
+  }
+  .toolbar { display: flex; gap: 8px; align-items: center; }
+  .tool-btn {
+    padding: 9px 15px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1.2;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+  }
+  .tool-btn:hover {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+  .tool-btn.icon-only {
+    padding: 9px 13px;
+    font-size: 16px;
+  }
+  .tool-btn.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: var(--danger-bg);
+  }
+  .tool-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--today-bg);
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 32px 24px;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .content-group {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .board-wrap {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .board {
+    display: flex;
+    gap: 22px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    min-height: 0;
+  }
+  .board::-webkit-scrollbar { display: none; }
+
+  .archive-strip {
+    flex: 0 0 52px;
+    align-self: flex-start;
+    padding: 20px 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 3px;
+    cursor: pointer;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transition: all 0.15s ease;
+  }
+  .archive-strip:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    border-style: solid;
+  }
+
+  .card {
+    flex: 0 0 400px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+    align-self: flex-start;
+    max-height: 100%;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+    position: relative;
+  }
+  .card.today {
+    border-color: var(--today-border);
+    box-shadow: 0 4px 18px rgba(59, 130, 246, 0.1);
+  }
+  .card.overdue { border-color: var(--overdue-border); }
+
+  @keyframes card-celebrate {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    100% { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
+  }
+  .card.celebrate-l2 {
+    animation: card-celebrate 0.9s ease-out;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+    position: relative;
+  }
+  .card.today .card-header { background: var(--today-bg); }
+
+  /* 卡片头进度条 */
+  .card-progress {
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: transparent;
+    overflow: hidden;
+  }
+  .card-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--primary);
+    transition: width 0.45s cubic-bezier(0.34, 1.2, 0.64, 1),
+                background 0.3s ease;
+  }
+  .card-progress-fill.complete {
+    background: var(--done);
+  }
+
+  .collapse-btn {
+    width: 26px; height: 26px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
+    transform: rotate(90deg);
+    border-radius: 6px;
+  }
+  .collapse-btn:hover { background: var(--bg); color: var(--text); }
+  .card.collapsed .collapse-btn { transform: rotate(0deg); }
+
+  .date-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .date-input:hover {
+    border-color: var(--border);
+    background: var(--card-bg);
+  }
+  .date-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--card-bg);
+  }
+  [data-theme="dark"] .date-input::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+  }
+
+  .stat {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 700;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat.complete {
+    color: var(--done);
+  }
+
+  .header-btn {
+    width: 30px; height: 30px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    transition: all 0.15s ease;
+  }
+  .header-btn:hover { background: var(--bg); color: var(--text); }
+  .header-btn.danger:hover { background: var(--danger-bg); color: var(--danger); }
+
+  .overdue-hint {
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--overdue);
+    background: var(--overdue-bg);
+    border-bottom: 1px solid var(--overdue-border);
+    flex-shrink: 0;
+  }
+
+  .task-list {
+    list-style: none;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 404px;
+    flex-shrink: 0;
+  }
+  .task-list::-webkit-scrollbar { width: 8px; }
+  .task-list::-webkit-scrollbar-thumb {
+    background: var(--sb-thumb);
+    border-radius: 4px;
+  }
+  .card.collapsed .task-list,
+  .card.collapsed .add-task-btn,
+  .card.collapsed .add-task-input,
+  .card.collapsed .empty-hint,
+  .card.collapsed .overdue-hint { display: none; }
+
+  .empty-hint {
+    padding: 32px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    font-style: italic;
+  }
+
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 10px;
+    border-radius: 9px;
+    background: var(--bg);
+    border: 1px solid transparent;
+    cursor: grab;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .task:hover { border-color: var(--border); }
+  .task.dragging { opacity: 0.4; cursor: grabbing; }
+  .task.done {
+    background: var(--done-bg);
+  }
+  .task.done .task-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+  .task.overdue-task { background: var(--overdue-bg); }
+
+  /* === L1 原子动画 === */
+  @keyframes atom-bounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.025); }
+    100% { transform: scale(1); }
+  }
+  .task.atom-bounce { animation: atom-bounce 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  @keyframes atom-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+  }
+  .task.atom-shake { animation: atom-shake 0.36s ease; }
+
+  @keyframes atom-shine {
+    0% { transform: translateX(-100%); opacity: 0; }
+    30% { opacity: 0.55; }
+    100% { transform: translateX(150%); opacity: 0; }
+  }
+  .task .shine {
+    position: absolute;
+    top: 0; left: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.85) 50%,
+      rgba(255,255,255,0) 100%);
+    pointer-events: none;
+    transform: translateX(-100%);
+    animation: atom-shine 0.7s ease-out forwards;
+  }
+  [data-theme="dark"] .task .shine {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.28) 50%,
+      rgba(255,255,255,0) 100%);
+  }
+
+  .fx-ripple {
+    position: fixed;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2.5px solid var(--done);
+    pointer-events: none;
+    z-index: 300;
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.9;
+    animation: fx-ripple-anim 0.62s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+  }
+  @keyframes fx-ripple-anim {
+    0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(10); opacity: 0; }
+  }
+
+  .fx-particle {
+    position: fixed;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 300;
+    transform: translate(-50%, -50%);
+    animation: fx-particle-anim 0.7s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+  }
+  @keyframes fx-particle-anim {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+  }
+
+  .subtask-toggle {
+    width: 24px; height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.15s ease;
+    border-radius: 6px;
+    font-family: inherit;
+    opacity: 0.5;
+  }
+  .task:hover .subtask-toggle {
+    opacity: 1;
+    color: var(--primary);
+    background: var(--card-bg);
+  }
+  .subtask-toggle:hover {
+    opacity: 1;
+    color: var(--primary);
+    background: var(--card-bg);
+  }
+
+  .task-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .task-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+    word-break: break-word;
+    outline: none;
+    padding: 3px 0;
+  }
+  .task-text[contenteditable="true"] {
+    border-bottom: 1.5px solid var(--primary);
+    cursor: text;
+  }
+
+  .status-btn {
+    padding: 5px 13px;
+    border: none;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+    min-height: 26px;
+    position: relative;
+  }
+  .status-btn.todo  { background: var(--todo-bg);  color: var(--todo); }
+  .status-btn.doing { background: var(--doing-bg); color: var(--doing); }
+  .status-btn.done  { background: var(--done-bg);  color: var(--done); }
+  .status-btn:hover { filter: brightness(0.95); }
+
+  @keyframes status-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .status-btn.pop {
+    animation: status-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .task-btn {
+    width: 26px; height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    padding: 0;
+    margin-top: 1px;
+  }
+  .task:hover .task-btn { opacity: 1; }
+  .task-btn:hover { background: var(--card-bg); color: var(--primary); }
+  .task-btn.del:hover { background: var(--danger-bg); color: var(--danger); }
+
+  .subtasks {
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: 8px;
+    margin-left: 30px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .subtask {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  .subtask:hover { background: var(--card-bg); }
+  .subtask-check {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    border: 2px solid var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .subtask-check::after {
+    content: '';
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) scale(0);
+    transition: transform 0.15s ease;
+    margin-top: -2px;
+  }
+  .subtask-check:hover { border-color: var(--done); }
+  .subtask-check.checked {
+    background: var(--done);
+    border-color: var(--done);
+  }
+  .subtask-check.checked::after { transform: rotate(-45deg) scale(1); }
+
+  .subtask-text {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    word-break: break-word;
+    outline: none;
+    padding: 2px 0;
+  }
+  .subtask-text[contenteditable="true"] {
+    border-bottom: 1px solid var(--primary);
+    cursor: text;
+  }
+  .subtask.done .subtask-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+  .subtask-del {
+    width: 22px; height: 22px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    border-radius: 5px;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .subtask:hover .subtask-del { opacity: 1; }
+  .subtask-del:hover { background: var(--danger-bg); color: var(--danger); }
+
+  .add-subtask-btn,
+  .add-subtask-input {
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+  }
+  .add-subtask-btn:hover { color: var(--primary); background: var(--card-bg); }
+  .add-subtask-input {
+    border: 1px solid var(--primary);
+    background: var(--card-bg);
+    color: var(--text);
+    outline: none;
+    cursor: text;
+  }
+
+  .add-task-btn {
+    margin: 0 10px 10px;
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .add-task-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg);
+  }
+  .add-task-input {
+    margin: 0 10px 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--primary);
+    border-radius: 9px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .add-task-input::placeholder { color: var(--text-muted); font-weight: 500; }
+
+  .add-card-btn {
+    flex: 0 0 56px;
+    align-self: flex-start;
+    padding: 24px 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 5px;
+    cursor: pointer;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s ease;
+  }
+  .add-card-btn:hover {
+    border-style: solid;
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .thumb-bar {
+    display: flex;
+    gap: 7px;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 0 8px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .thumb-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .thumb-dot::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+  }
+  .thumb-dot:hover { transform: scale(1.25); border-color: var(--primary); }
+  .thumb-dot.has-task {
+    background: var(--text-muted);
+    border-color: var(--text-muted);
+  }
+  .thumb-dot.today {
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+  }
+  .thumb-dot.overdue {
+    background: var(--overdue);
+    border-color: var(--overdue);
+  }
+  .thumb-dot.visible {
+    transform: scale(1.35);
+    border-color: var(--primary);
+  }
+
+  .hscroll {
+    padding: 6px 0 0;
+    flex-shrink: 0;
+    display: none;
+  }
+  .hscroll.visible { display: block; }
+  .hscroll-track {
+    position: relative;
+    height: 10px;
+    background: var(--sb-track);
+    border-radius: 5px;
+  }
+  .hscroll-thumb {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: var(--sb-thumb);
+    border-radius: 5px;
+    cursor: grab;
+    transition: background 0.15s ease;
+    min-width: 44px;
+  }
+  .hscroll-thumb:hover,
+  .hscroll-thumb.dragging { background: var(--primary); }
+
+  .cal-popup {
+    position: fixed;
+    z-index: 100;
+    background: var(--popup-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--popup-shadow);
+    padding: 14px;
+    width: 280px;
+    user-select: none;
+    animation: popIn 0.15s ease;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cal-title { font-size: 13.5px; font-weight: 700; }
+  .cal-nav {
+    width: 30px; height: 30px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .cal-nav:hover { background: var(--bg); color: var(--text); }
+  .cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .cal-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12.5px;
+    border-radius: 7px;
+    color: var(--text-secondary);
+    position: relative;
+    transition: all 0.15s ease;
+  }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day:not(.empty):hover {
+    background: var(--bg);
+    cursor: pointer;
+    color: var(--text);
+  }
+  .cal-day.has-task { color: var(--text); font-weight: 700; }
+  .cal-day.has-task::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .cal-day.today {
+    background: var(--today-bg);
+    color: var(--primary);
+    font-weight: 800;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translate(-50%, 20px);
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    max-width: 90vw;
+  }
+  [data-theme="dark"] .toast { background: #e5e7eb; color: #1f2937; }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  .toast-msg {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+  }
+  .toast-undo {
+    background: transparent;
+    border: none;
+    color: #60a5fa;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 6px 10px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  [data-theme="dark"] .toast-undo { color: #2563eb; }
+  .toast-undo:hover { text-decoration: underline; background: rgba(96,165,250,0.1); }
+
+  /* ============ 庆祝层 ============ */
+  #celebrationLayer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 400;
+    overflow: hidden;
+  }
+
+  .celebration-emoji {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.2);
+    font-size: max(20vh, 100px);
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 12px 32px rgba(0,0,0,0.28));
+    animation: emoji-pop 2s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+    z-index: 401;
+    user-select: none;
+  }
+  @keyframes emoji-pop {
+    0%   { transform: translate(-50%, -50%) scale(0.2) rotate(-18deg); opacity: 0; }
+    18%  { transform: translate(-50%, -50%) scale(1.15) rotate(6deg); opacity: 1; }
+    30%  { transform: translate(-50%, -50%) scale(0.96) rotate(-3deg); opacity: 1; }
+    42%  { transform: translate(-50%, -50%) scale(1.02) rotate(1deg); opacity: 1; }
+    70%  { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.15) rotate(0deg); opacity: 0; }
+  }
+
+  .dom-firework {
+    position: fixed;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: dom-fw 1.1s cubic-bezier(0.18, 0.72, 0.34, 1) forwards;
+    z-index: 402;
+    box-shadow: 0 0 10px currentColor;
+  }
+  @keyframes dom-fw {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+  }
+
+  #fireworksCanvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 410;
+    display: none;
+  }
+  #fireworksCanvas.active { display: block; }
+
+  .l3-text {
+    position: fixed;
+    left: 50%;
+    top: 28%;
+    transform: translate(-50%, -50%) scale(0.85);
+    font-size: clamp(20px, 4.5vh, 56px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #ffd76e;
+    /* 多重 text-shadow 模拟描边，明暗主题都看得清 */
+    text-shadow:
+      -2px -2px 0 #7c2d12,
+       2px -2px 0 #7c2d12,
+      -2px  2px 0 #7c2d12,
+       2px  2px 0 #7c2d12,
+       0 0 24px rgba(255, 190, 60, 0.9),
+       0 0 60px rgba(255, 160, 40, 0.7),
+       0 6px 24px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 420;
+    text-align: center;
+    white-space: nowrap;
+    animation: l3-text-anim 4s ease-out forwards;
+    user-select: none;
+  }
+  @keyframes l3-text-anim {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    20%  { transform: translate(-50%, -50%) scale(1); }
+    80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); }
+  }
+
+  /* 无障碍：减少动态效果 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .main { padding: 0 20px 16px; }
+  }
+  @media (max-width: 640px) {
+    .topbar { padding: 10px 12px; }
+    .main { padding: 0 12px 12px; }
+    .content-group { gap: 12px; }
+    .board { gap: 12px; }
+    .tool-btn { padding: 7px 10px; font-size: 12.5px; }
+    .card { flex-basis: 320px; }
+    .add-card-btn { flex-basis: 48px; padding: 18px 10px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1 class="app-title">每日待办</h1>
+  <div class="toolbar">
+    <button class="tool-btn" id="todayBtn" title="回到今天">今天</button>
+    <button class="tool-btn icon-only" id="calendarBtn" title="日历">📅</button>
+    <button class="tool-btn" id="exportBtn" title="导出数据">导出</button>
+    <button class="tool-btn" id="importBtn" title="导入数据">导入</button>
+    <button class="tool-btn icon-only" id="soundBtn" title="音效开关">🔇</button>
+    <button class="tool-btn icon-only danger" id="deleteAllBtn" title="删除全部卡片">🗑</button>
+    <button class="tool-btn icon-only" id="themeBtn" title="切换主题">🌙</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
+  </div>
+</header>
+
+<main class="main">
+  <div class="content-group">
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+      <div class="thumb-bar" id="thumbBar"></div>
+      <div class="hscroll" id="hscroll">
+        <div class="hscroll-track" id="hscrollTrack">
+          <div class="hscroll-thumb" id="hscrollThumb"></div>
+        </div>
+      </div>
+    </div>
+    <button class="add-card-btn" id="addCardBtn">添加卡片</button>
+  </div>
+</main>
+
+<div id="celebrationLayer"></div>
+<canvas id="fireworksCanvas"></canvas>
+
+<div class="cal-popup" id="calPopup" hidden>
+  <div class="cal-head">
+    <button class="cal-nav" data-nav="-1">‹</button>
+    <span class="cal-title" id="calTitle"></span>
+    <button class="cal-nav" data-nav="1">›</button>
+  </div>
+  <div class="cal-week">
+    <span>日</span><span>一</span><span>二</span><span>三</span>
+    <span>四</span><span>五</span><span>六</span>
+  </div>
+  <div class="cal-days" id="calDays"></div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="toast-msg" id="toastMsg"></span>
+  <button class="toast-undo" id="toastUndo">撤销</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'daily-todo-v2';
+  const THEME_KEY   = 'daily-todo-theme';
+  const SOUND_KEY   = 'daily-todo-sound';
+  const STATUSES    = ['todo', 'doing', 'done'];
+  const STATUS_LABEL = { todo: '待办', doing: '进行中', done: '完成' };
+  const UNDO_MS = 5000;
+  const ARCHIVE_DAYS = 30;
+  const L3_TEXT = '今日完成🏆开始摸鱼🖐️🐟️';
+
+  const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let cards = [];
+  let dragSource = null;
+  let archiveExpanded = false;
+  let soundEnabled = false;
+
+  const $ = id => document.getElementById(id);
+  const board        = $('board');
+  const thumbBar     = $('thumbBar');
+  const hscroll      = $('hscroll');
+  const hscrollTrack = $('hscrollTrack');
+  const hscrollThumb = $('hscrollThumb');
+  const addCardBtn   = $('addCardBtn');
+  const exportBtn    = $('exportBtn');
+  const importBtn    = $('importBtn');
+  const importFile   = $('importFile');
+  const themeBtn     = $('themeBtn');
+  const todayBtn     = $('todayBtn');
+  const calendarBtn  = $('calendarBtn');
+  const deleteAllBtn = $('deleteAllBtn');
+  const soundBtn     = $('soundBtn');
+  const calPopup     = $('calPopup');
+  const calTitle     = $('calTitle');
+  const calDays      = $('calDays');
+  const toast        = $('toast');
+  const toastMsg     = $('toastMsg');
+  const toastUndo    = $('toastUndo');
+  const celebrationLayer = $('celebrationLayer');
+  const fireworksCanvas  = $('fireworksCanvas');
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function toISO(d) {
+    return d.getFullYear() + '-'
+      + String(d.getMonth() + 1).padStart(2, '0') + '-'
+      + String(d.getDate()).padStart(2, '0');
+  }
+  function todayISO() { return toISO(new Date()); }
+  function tomorrowISO() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return toISO(d);
+  }
+  function formatDateCN(iso) {
+    if (!iso || typeof iso !== 'string') return '';
+    const p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return p[0] + '年' + Number(p[1]) + '月' + Number(p[2]) + '日';
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+  function isArchivedDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    const cutoff = new Date();
+    cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - ARCHIVE_DAYS);
+    return d < cutoff;
+  }
+  function isOverdueDate(iso) { return iso < todayISO(); }
+  function isTodayDate(iso) { return iso === todayISO(); }
+
+  function saveData() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cards)); }
+    catch (e) { console.warn('保存失败', e); }
+  }
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch { return null; }
+  }
+
+  /* ================== 音效模块（Web Audio） ================== */
+  let audioCtx = null;
+  function ensureAudioCtx() {
+    if (!soundEnabled) return null;
+    if (!audioCtx) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        console.warn('AudioContext 创建失败', e);
+        return null;
+      }
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  // 欢呼声：上行琶音 + 人群白噪
+  function playCheer(duration = 1.4, volume = 0.9) {
+    const ctx = ensureAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const t0 = now + i * 0.09;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.10 * volume, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.75);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0 + 0.8);
+    });
+    // 人群噪声
+    const bufSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 1100;
+    bandpass.Q.value = 0.6;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0, now);
+    nGain.gain.linearRampToValueAtTime(0.045 * volume, now + 0.18);
+    nGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    noise.connect(bandpass); bandpass.connect(nGain); nGain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + duration);
+  }
+
+  // 烟花爆炸：低通白噪 + 快速衰减
+  function playBoom(intensity = 1) {
+    const ctx = ensureAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = 0.55;
+    const bufSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(900, now);
+    lp.frequency.exponentialRampToValueAtTime(90, now + duration);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.22 * intensity, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    noise.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + duration);
+  }
+
+  function updateSoundBtn() {
+    soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+    soundBtn.classList.toggle('active', soundEnabled);
+    soundBtn.title = soundEnabled ? '音效已开启（点击关闭）' : '音效已关闭（点击开启）';
+  }
+
+  soundBtn.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch {}
+    updateSoundBtn();
+    if (soundEnabled) {
+      // 用户交互时初始化 + 试听一个小音节
+      ensureAudioCtx();
+      playCheer(0.5, 0.4);
+    }
+  });
+
+  /* ================== L1 原子动画 ================== */
+  const ATOMS = ['ripple', 'particles', 'shine', 'bounce', 'shake'];
+
+  function pickAtoms() {
+    const arr = [...ATOMS];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, 2);
+  }
+
+  function atomRipple(taskEl) {
+    const statusBtn = taskEl.querySelector('.status-btn');
+    const rect = (statusBtn || taskEl).getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const el = document.createElement('div');
+    el.className = 'fx-ripple';
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+
+  function atomParticles(taskEl) {
+    const statusBtn = taskEl.querySelector('.status-btn');
+    const rect = (statusBtn || taskEl).getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ['#10b981', '#34d399', '#fbbf24', '#60a5fa', '#a78bfa'];
+    const count = 4 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+      const dist = 28 + Math.random() * 38;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      const p = document.createElement('div');
+      p.className = 'fx-particle';
+      p.style.left = cx + 'px';
+      p.style.top  = cy + 'px';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.setProperty('--dx', `calc(-50% + ${dx}px)`);
+      p.style.setProperty('--dy', `calc(-50% + ${dy}px)`);
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 800);
+    }
+  }
+
+  function atomShine(taskEl) {
+    const shine = document.createElement('div');
+    shine.className = 'shine';
+    taskEl.appendChild(shine);
+    setTimeout(() => shine.remove(), 750);
+  }
+
+  function atomBounce(taskEl) {
+    taskEl.classList.add('atom-bounce');
+    setTimeout(() => taskEl.classList.remove('atom-bounce'), 320);
+  }
+
+  function atomShake(taskEl) {
+    taskEl.classList.add('atom-shake');
+    setTimeout(() => taskEl.classList.remove('atom-shake'), 400);
+  }
+
+  function triggerL1(taskEl) {
+    if (REDUCED_MOTION) return;
+    const chosen = pickAtoms();
+    chosen.forEach(atom => {
+      if (atom === 'ripple')    atomRipple(taskEl);
+      if (atom === 'particles') atomParticles(taskEl);
+      if (atom === 'shine')     atomShine(taskEl);
+      if (atom === 'bounce')    atomBounce(taskEl);
+      if (atom === 'shake')     atomShake(taskEl);
+    });
+  }
+
+  /* ================== L2 大拇指 + DOM 小烟花 ================== */
+  function triggerL2(card) {
+    // 大拇指
+    if (!REDUCED_MOTION) {
+      const emoji = document.createElement('div');
+      emoji.className = 'celebration-emoji';
+      emoji.textContent = '👍';
+      celebrationLayer.appendChild(emoji);
+      setTimeout(() => emoji.remove(), 2100);
+
+      // DOM 小烟花
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const colors = ['#fbbf24', '#f59e0b', '#60a5fa', '#a78bfa', '#34d399', '#f472b6'];
+      const count = 25;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+        const dist = 140 + Math.random() * 220;
+        const dx = Math.cos(angle) * dist;
+        const dy = Math.sin(angle) * dist;
+        const p = document.createElement('div');
+        p.className = 'dom-firework';
+        p.style.left = cx + 'px';
+        p.style.top  = cy + 'px';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.setProperty('--dx', `calc(-50% + ${dx}px)`);
+        p.style.setProperty('--dy', `calc(-50% + ${dy}px)`);
+        celebrationLayer.appendChild(p);
+        setTimeout(() => p.remove(), 1200);
+      }
+
+      // 卡片脉冲
+      const cardEl = board.querySelector(`.card[data-card-id="${card.id}"]`);
+      if (cardEl) {
+        cardEl.classList.add('celebrate-l2');
+        setTimeout(() => cardEl.classList.remove('celebrate-l2'), 1000);
+      }
+    }
+
+    // 欢呼音
+    playCheer(1.4, 0.9);
+  }
+
+  /* ================== L3 全屏烟花（Canvas，透明背景） ================== */
+  let fwCtx = null;
+  let fwAnimId = null;
+  let fwParticles = [];
+  let fwRockets = [];
+
+  function setupCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    fireworksCanvas.width  = window.innerWidth * dpr;
+    fireworksCanvas.height = window.innerHeight * dpr;
+    fireworksCanvas.style.width  = window.innerWidth + 'px';
+    fireworksCanvas.style.height = window.innerHeight + 'px';
+    fwCtx = fireworksCanvas.getContext('2d');
+    fwCtx.setTransform(1, 0, 0, 1, 0, 0);
+    fwCtx.scale(dpr, dpr);
+  }
+
+  function spawnRocket(targetX, targetY, color) {
+    const startX = targetX + (Math.random() - 0.5) * 220;
+    const startY = window.innerHeight + 10;
+    fwRockets.push({
+      x: startX, y: startY,
+      vx: (targetX - startX) / 55,
+      vy: (targetY - startY) / 55,
+      targetX, targetY,
+      color,
+      trail: []
+    });
+  }
+
+  function explode(x, y, color) {
+    const count = 70 + Math.floor(Math.random() * 40);
+    const baseHue = Math.random() * 360;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.2;
+      const speed = 2 + Math.random() * 5.5;
+      fwParticles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        decay: 0.011 + Math.random() * 0.013,
+        color: `hsl(${baseHue + Math.random() * 70}, 95%, ${60 + Math.random() * 25}%)`,
+        size: 1.8 + Math.random() * 2.4,
+        trail: []
+      });
+    }
+  }
+
+  function fireworkLoop() {
+    if (!fwCtx) return;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    // 关键：透明背景，每帧全清，不残留
+    fwCtx.clearRect(0, 0, W, H);
+    fwCtx.globalCompositeOperation = 'lighter';
+
+    // 火箭
+    for (let i = fwRockets.length - 1; i >= 0; i--) {
+      const r = fwRockets[i];
+      r.x += r.vx;
+      r.y += r.vy;
+      r.vy += 0.055;
+      r.trail.push({ x: r.x, y: r.y });
+      if (r.trail.length > 12) r.trail.shift();
+
+      for (let j = 0; j < r.trail.length; j++) {
+        const p = r.trail[j];
+        const a = (j + 1) / r.trail.length;
+        fwCtx.globalAlpha = a * 0.85;
+        fwCtx.beginPath();
+        fwCtx.arc(p.x, p.y, 1.2 + a * 1.6, 0, Math.PI * 2);
+        fwCtx.fillStyle = r.color;
+        fwCtx.fill();
+      }
+
+      if (r.y <= r.targetY || r.vy >= 0) {
+        explode(r.x, r.y, r.color);
+        playBoom(0.85);
+        fwRockets.splice(i, 1);
+      }
+    }
+
+    // 粒子
+    for (let i = fwParticles.length - 1; i >= 0; i--) {
+      const p = fwParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      p.vy += 0.05;
+      p.life -= p.decay;
+
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > 8) p.trail.shift();
+
+      if (p.life <= 0) {
+        fwParticles.splice(i, 1);
+        continue;
+      }
+
+      // 拖尾：越旧越淡
+      for (let j = 0; j < p.trail.length; j++) {
+        const t = p.trail[j];
+        const a = ((j + 1) / p.trail.length) * p.life * 0.55;
+        fwCtx.globalAlpha = a;
+        fwCtx.beginPath();
+        fwCtx.arc(t.x, t.y, p.size * 0.8 * ((j + 1) / p.trail.length), 0, Math.PI * 2);
+        fwCtx.fillStyle = p.color;
+        fwCtx.fill();
+      }
+
+      // 主粒子 + 光晕
+      fwCtx.globalAlpha = p.life;
+      fwCtx.shadowBlur = 14;
+      fwCtx.shadowColor = p.color;
+      fwCtx.beginPath();
+      fwCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      fwCtx.fillStyle = p.color;
+      fwCtx.fill();
+      fwCtx.shadowBlur = 0;
+    }
+    fwCtx.globalAlpha = 1;
+
+    fwAnimId = requestAnimationFrame(fireworkLoop);
+  }
+
+  function triggerL3() {
+    if (REDUCED_MOTION) {
+      const textEl = document.createElement('div');
+      textEl.className = 'l3-text';
+      textEl.textContent = L3_TEXT;
+      celebrationLayer.appendChild(textEl);
+      setTimeout(() => textEl.remove(), 4200);
+      playCheer(2, 1);
+      return;
+    }
+
+    const textEl = document.createElement('div');
+    textEl.className = 'l3-text';
+    textEl.textContent = L3_TEXT;
+    celebrationLayer.appendChild(textEl);
+    setTimeout(() => textEl.remove(), 4200);
+
+    setupCanvas();
+    fireworksCanvas.classList.add('active');
+    fwParticles = [];
+    fwRockets = [];
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const shots = [
+      { x: w * 0.25, y: h * 0.30, delay: 0,    color: '#fbbf24' },
+      { x: w * 0.75, y: h * 0.25, delay: 400,  color: '#60a5fa' },
+      { x: w * 0.50, y: h * 0.40, delay: 900,  color: '#f472b6' },
+      { x: w * 0.32, y: h * 0.22, delay: 1500, color: '#a78bfa' },
+      { x: w * 0.68, y: h * 0.34, delay: 2100, color: '#34d399' }
+    ];
+    shots.forEach(s => {
+      setTimeout(() => spawnRocket(s.x, s.y, s.color), s.delay);
+    });
+
+    if (fwAnimId) cancelAnimationFrame(fwAnimId);
+    fwAnimId = requestAnimationFrame(fireworkLoop);
+
+    playCheer(2.2, 1.0);
+
+    setTimeout(() => {
+      if (fwAnimId) {
+        cancelAnimationFrame(fwAnimId);
+        fwAnimId = null;
+      }
+      if (fwCtx) fwCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      fireworksCanvas.classList.remove('active');
+      fwParticles = [];
+      fwRockets = [];
+    }, 4200);
+  }
+
+  window.addEventListener('resize', () => {
+    if (fireworksCanvas.classList.contains('active')) {
+      setupCanvas();
+    }
+  });
+
+  /* ================== 庆祝触发检查 ================== */
+  function checkCelebration(card) {
+    if (!card) return;
+    const total = card.tasks.length;
+    if (total === 0) {
+      card.l2Celebrated = false;
+      card.l3Celebrated = false;
+      return;
+    }
+    const doneCount = card.tasks.filter(t => t.status === 'done').length;
+    const allDone = doneCount === total;
+
+    if (!allDone) {
+      // 不完整 → 重置标记
+      card.l2Celebrated = false;
+      card.l3Celebrated = false;
+      return;
+    }
+
+    // 全部完成
+    if (card.l3Celebrated) return;
+    const isToday = isTodayDate(card.date);
+
+    if (isToday) {
+      triggerL3();
+      card.l3Celebrated = true;
+      card.l2Celebrated = true; // 防止之后再触发 L2
+    } else if (!card.l2Celebrated) {
+      triggerL2(card);
+      card.l2Celebrated = true;
+    }
+  }
+
+  /* ================== 撤销系统 ================== */
+  let undoFn = null;
+  let undoTimer = null;
+  function showUndo(message, restoreFn) {
+    undoFn = restoreFn;
+    toastMsg.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(undoTimer);
+    undoTimer = setTimeout(hideUndo, UNDO_MS);
+  }
+  function hideUndo() {
+    toast.classList.remove('show');
+    undoFn = null;
+  }
+  toastUndo.addEventListener('click', () => {
+    if (undoFn) { const fn = undoFn; hideUndo(); fn(); }
+  });
+
+  /* ================== 渲染 ================== */
+  function renderCard(card) {
+    const overdue = isOverdueDate(card.date);
+    const today = isTodayDate(card.date);
+    const total = card.tasks.length;
+    const doneCount = card.tasks.filter(t => t.status === 'done').length;
+    const statText = total === 0 ? '' : `${doneCount}/${total}`;
+    const complete = total > 0 && doneCount === total;
+
+    let inner = '';
+    if (card.tasks.length === 0) {
+      inner = `<div class="empty-hint">打算做点什么呢？</div>`;
+    } else {
+      inner = `<ul class="task-list">` + card.tasks.map(t => renderTask(t, overdue)).join('') + `</ul>`;
+    }
+
+    const overdueHint = overdue && card.tasks.some(t => t.status !== 'done')
+      ? `<div class="overdue-hint">更早的 · ${card.tasks.filter(x => x.status !== 'done').length} 项未完成</div>`
+      : '';
+
+    const cls = ['card'];
+    if (overdue) cls.push('overdue');
+    if (today) cls.push('today');
+    if (card.collapsed) cls.push('collapsed');
+
+    const progressPct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+
+    return `
+      <article class="${cls.join(' ')}" data-card-id="${card.id}">
+        <header class="card-header">
+          <button class="collapse-btn" data-action="collapse" title="折叠/展开">▶</button>
+          <input type="date" class="date-input" value="${card.date}"
+                 data-action="date" title="${formatDateCN(card.date)}">
+          <span class="stat ${complete ? 'complete' : ''}">${statText}</span>
+          <button class="header-btn" data-action="clear-done" title="清空已完成">🧹</button>
+          <button class="header-btn danger" data-action="del-card" title="删除卡片">✕</button>
+          <div class="card-progress">
+            <div class="card-progress-fill ${complete ? 'complete' : ''}"
+                 style="width: ${progressPct}%"></div>
+          </div>
+        </header>
+        ${overdueHint}
+        ${inner}
+        <button class="add-task-btn" data-action="add-task">+ 新增待办</button>
+      </article>`;
+  }
+
+  function renderTask(t, overdue) {
+    const cls = ['task'];
+    if (t.status === 'done') cls.push('done');
+    if (overdue && t.status !== 'done') cls.push('overdue-task');
+
+    const hasSub = t.subtasks && t.subtasks.length > 0;
+    const toggleLabel = hasSub ? (t.expanded ? '▾' : '▸') : '+';
+    const toggleTitle = hasSub ? '展开/收起步骤' : '拆成步骤';
+
+    let subHtml = '';
+    if (t.expanded) {
+      const subs = (t.subtasks || []).map(s => `
+        <div class="subtask${s.done ? ' done' : ''}" data-subtask-id="${s.id}">
+          <span class="subtask-check${s.done ? ' checked' : ''}"
+                data-action="toggle-subtask"></span>
+          <span class="subtask-text" data-action="edit-subtask">${escapeHtml(s.text)}</span>
+          <button class="subtask-del" data-action="del-subtask" title="删除步骤">✕</button>
+        </div>
+      `).join('');
+      subHtml = `
+        <div class="subtasks">
+          ${subs}
+          <button class="add-subtask-btn" data-action="add-subtask">+ 添加步骤</button>
+        </div>`;
+    }
+
+    return `
+      <li class="${cls.join(' ')}" draggable="true" data-task-id="${t.id}">
+        <button class="subtask-toggle" data-action="toggle-subtask-expand"
+                title="${toggleTitle}">${toggleLabel}</button>
+        <div class="task-main">
+          <span class="task-text">${escapeHtml(t.text)}</span>
+          <button class="status-btn ${t.status}" data-action="cycle"
+                  title="点击切换状态">${STATUS_LABEL[t.status]}</button>
+          <button class="task-btn del" data-action="del-task" title="删除任务">✕</button>
+        </div>
+        ${subHtml}
+      </li>`;
+  }
+
+  function renderThumbs(visibleCards) {
+    if (visibleCards.length < 2) {
+      thumbBar.innerHTML = '';
+      return;
+    }
+    thumbBar.innerHTML = visibleCards.map(c => {
+      const cls = ['thumb-dot'];
+      if (c.tasks.length > 0) cls.push('has-task');
+      if (isTodayDate(c.date)) cls.push('today');
+      else if (isOverdueDate(c.date)) cls.push('overdue');
+      return `<button class="${cls.join(' ')}" data-card-id="${c.id}"
+              title="${formatDateCN(c.date)}"></button>`;
+    }).join('');
+  }
+
+  function render() {
+    if (cards.length === 0) {
+      cards.push({ id: uid(), date: todayISO(), tasks: [] });
+    }
+
+    const archived = [];
+    const recent = [];
+    for (const c of cards) {
+      if (isArchivedDate(c.date)) archived.push(c);
+      else recent.push(c);
+    }
+
+    let html = '';
+    if (archived.length > 0) {
+      html += `<div class="archive-strip" data-action="toggle-archive">
+        ${archiveExpanded ? '收起更早' : `更早 · ${archived.length} 张`}
+      </div>`;
+      if (archiveExpanded) html += archived.map(renderCard).join('');
+    }
+    html += recent.map(renderCard).join('');
+    board.innerHTML = html;
+
+    const visibleCards = archiveExpanded ? [...archived, ...recent] : recent;
+    renderThumbs(visibleCards);
+
+    requestAnimationFrame(() => {
+      updateScrollbar();
+      updateVisibleDots();
+    });
+  }
+
+  function findCard(id) { return cards.find(c => c.id === id); }
+
+  function addCard() {
+    const newCard = { id: uid(), date: tomorrowISO(), tasks: [] };
+    while (cards.some(c => c.date === newCard.date)) {
+      const d = new Date(newCard.date + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      newCard.date = toISO(d);
+    }
+    cards.push(newCard);
+    saveData();
+    render();
+    requestAnimationFrame(() => {
+      board.scrollTo({ left: board.scrollWidth, behavior: 'smooth' });
+    });
+  }
+
+  function deleteCard(cardId) {
+    const card = findCard(cardId);
+    if (!card) return;
+    if (!confirm(`删除「${formatDateCN(card.date)}」的卡片？`)) return;
+    const idx = cards.findIndex(c => c.id === cardId);
+    const removed = cards[idx];
+    cards.splice(idx, 1);
+    if (cards.length === 0) {
+      cards.push({ id: uid(), date: todayISO(), tasks: [] });
+    }
+    saveData();
+    render();
+    showUndo(`已删除「${formatDateCN(removed.date)}」`, () => {
+      cards.splice(idx, 0, removed);
+      saveData();
+      render();
+    });
+  }
+
+  function clearDone(cardId) {
+    const card = findCard(cardId);
+    if (!card) return;
+    const removed = card.tasks.filter(t => t.status === 'done');
+    if (removed.length === 0) {
+      showUndo('没有已完成的任务', () => {});
+      return;
+    }
+    card.tasks = card.tasks.filter(t => t.status !== 'done');
+    card.l2Celebrated = false;
+    card.l3Celebrated = false;
+    saveData();
+    render();
+    showUndo(`已清空 ${removed.length} 条已完成`, () => {
+      const merged = [...card.tasks];
+      removed.forEach(t => merged.push(t));
+      card.tasks = merged;
+      saveData();
+      render();
+    });
+  }
+
+  function addTask(cardId, text) {
+    const card = findCard(cardId);
+    if (!card) return;
+    card.tasks.push({ id: uid(), text, status: 'todo', subtasks: [], expanded: false });
+    card.l2Celebrated = false;
+    card.l3Celebrated = false;
+    saveData();
+    render();
+  }
+
+  function cycleStatus(cardId, taskId) {
+    const card = findCard(cardId);
+    if (!card) return;
+    const t = card.tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const prev = t.status;
+    const i = STATUSES.indexOf(t.status);
+    t.status = STATUSES[(i + 1) % STATUSES.length];
+    const justDone = t.status === 'done' && prev !== 'done';
+
+    saveData();
+    render();
+
+    if (justDone) {
+      // L1：单条任务完成
+      requestAnimationFrame(() => {
+        const taskEl = board.querySelector(`.task[data-task-id="${taskId}"]`);
+        if (taskEl) {
+          const btn = taskEl.querySelector('.status-btn');
+          if (btn) btn.classList.add('pop');
+          triggerL1(taskEl);
+        }
+      });
+    } else if (prev === 'done' && t.status !== 'done') {
+      // 从完成取消 → 重置该卡片的庆祝标记
+      card.l2Celebrated = false;
+      card.l3Celebrated = false;
+      saveData();
+    }
+
+    // 检查卡片级别庆祝
+    // 用小延时，等 render 完成
+    setTimeout(() => checkCelebration(card), 80);
+  }
+
+  function deleteTask(cardId, taskId) {
+    const card = findCard(cardId);
+    if (!card) return;
+    const idx = card.tasks.findIndex(x => x.id === taskId);
+    if (idx < 0) return;
+    const [removed] = card.tasks.splice(idx, 1);
+    card.l2Celebrated = false;
+    card.l3Celebrated = false;
+    saveData();
+    render();
+    showUndo(`已删除「${removed.text}」`, () => {
+      card.tasks.splice(idx, 0, removed);
+      saveData();
+      render();
+    });
+  }
+
+  function toggleSubtaskExpand(cardId, taskId) {
+    const card = findCard(cardId);
+    const t = card && card.tasks.find(x => x.id === taskId);
+    if (!t) return;
+    if (!t.subtasks) t.subtasks = [];
+    t.expanded = !t.expanded;
+    saveData();
+    render();
+    if (t.expanded && t.subtasks.length === 0) {
+      requestAnimationFrame(() => startAddSubtask(cardId, taskId));
+    }
+  }
+
+  function startAddSubtask(cardId, taskId) {
+    const taskEl = board.querySelector(`.task[data-task-id="${taskId}"]`);
+    if (!taskEl) return;
+    const btn = taskEl.querySelector('.add-subtask-btn');
+    if (!btn) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'add-subtask-input';
+    input.placeholder = '拆分一下…';
+    input.maxLength = 200;
+    btn.replaceWith(input);
+    input.focus();
+
+    let finished = false;
+    function finish(save) {
+      if (finished) return;
+      const text = input.value.trim();
+      if (save && text) {
+        const card = findCard(cardId);
+        const t = card && card.tasks.find(x => x.id === taskId);
+        if (t) {
+          t.subtasks.push({ id: uid(), text, done: false });
+          t.expanded = true;
+          saveData();
+          render();
+          requestAnimationFrame(() => startAddSubtask(cardId, taskId));
+          return;
+        }
+      }
+      finished = true;
+      render();
+    }
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
+  // 步骤勾选：不加动画（按你要求）
+  function toggleSubtaskDone(cardId, taskId, subId) {
+    const card = findCard(cardId);
+    const t = card && card.tasks.find(x => x.id === taskId);
+    const s = t && t.subtasks.find(x => x.id === subId);
+    if (!s) return;
+    s.done = !s.done;
+    saveData();
+    render();
+  }
+
+  function deleteSubtask(cardId, taskId, subId) {
+    const card = findCard(cardId);
+    const t = card && card.tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const idx = t.subtasks.findIndex(x => x.id === subId);
+    if (idx < 0) return;
+    const [removed] = t.subtasks.splice(idx, 1);
+    saveData();
+    render();
+    showUndo(`已删除步骤「${removed.text}」`, () => {
+      t.subtasks.splice(idx, 0, removed);
+      saveData();
+      render();
+    });
+  }
+
+  function startEditSubtask(cardId, taskId, subId, el) {
+    const original = el.textContent;
+    el.contentEditable = 'true';
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    let finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      el.contentEditable = 'false';
+      const next = el.textContent.trim();
+      if (save && next && next !== original) {
+        const card = findCard(cardId);
+        const t = card && card.tasks.find(x => x.id === taskId);
+        const s = t && t.subtasks.find(x => x.id === subId);
+        if (s) { s.text = next; saveData(); }
+      }
+      render();
+    }
+    el.addEventListener('blur', () => finish(true), { once: true });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+  }
+
+  function startEdit(cardId, taskId, el) {
+    const original = el.textContent;
+    el.contentEditable = 'true';
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    let finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      el.contentEditable = 'false';
+      const next = el.textContent.trim();
+      if (save && next && next !== original) {
+        const card = findCard(cardId);
+        const t = card && card.tasks.find(x => x.id === taskId);
+        if (t) { t.text = next; saveData(); }
+      }
+      render();
+    }
+    el.addEventListener('blur', () => finish(true), { once: true });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+  }
+
+  function startAddTask(cardId) {
+    const cardEl = board.querySelector(`.card[data-card-id="${cardId}"]`);
+    if (!cardEl) return;
+    const btn = cardEl.querySelector('.add-task-btn');
+    if (!btn) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'add-task-input';
+    input.placeholder = '打算做点什么呢？';
+    input.maxLength = 200;
+    btn.replaceWith(input);
+    input.focus();
+    input.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    let finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      const text = input.value.trim();
+      if (save && text) addTask(cardId, text);
+      else render();
+    }
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
+  function scrollToToday() {
+    let todayCard = cards.find(c => c.date === todayISO());
+    if (!todayCard) {
+      const c = { id: uid(), date: todayISO(), tasks: [] };
+      cards.push(c);
+      saveData();
+      render();
+      requestAnimationFrame(() => scrollToCard(c.id));
+      return;
+    }
+    if (isArchivedDate(todayCard.date)) {
+      archiveExpanded = true;
+      render();
+      requestAnimationFrame(() => scrollToCard(todayCard.id));
+      return;
+    }
+    scrollToCard(todayCard.id);
+  }
+  function scrollToCard(cardId) {
+    const el = board.querySelector(`.card[data-card-id="${cardId}"]`);
+    if (!el) return;
+    const cardRect = el.getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+    const offset = cardRect.left - boardRect.left + board.scrollLeft;
+    board.scrollTo({ left: offset - 4, behavior: 'smooth' });
+  }
+
+  board.addEventListener('click', e => {
+    if (e.target.closest('.archive-strip')) {
+      archiveExpanded = !archiveExpanded;
+      render();
+      return;
+    }
+
+    const cardEl = e.target.closest('.card');
+    if (!cardEl) return;
+    const cardId = cardEl.dataset.cardId;
+    const action = e.target.dataset.action;
+
+    if (action === 'add-task') { startAddTask(cardId); return; }
+    if (action === 'del-card') { deleteCard(cardId); return; }
+    if (action === 'clear-done') { clearDone(cardId); return; }
+    if (action === 'collapse') {
+      const card = findCard(cardId);
+      if (card) {
+        card.collapsed = !card.collapsed;
+        saveData();
+        render();
+      }
+      return;
+    }
+
+    const taskEl = e.target.closest('.task');
+    if (!taskEl) return;
+    const taskId = taskEl.dataset.taskId;
+
+    const subtaskEl = e.target.closest('.subtask');
+    if (subtaskEl) {
+      const subId = subtaskEl.dataset.subtaskId;
+      if (action === 'toggle-subtask') toggleSubtaskDone(cardId, taskId, subId);
+      if (action === 'del-subtask') deleteSubtask(cardId, taskId, subId);
+      return;
+    }
+
+    if (action === 'toggle-subtask-expand') {
+      toggleSubtaskExpand(cardId, taskId);
+      return;
+    }
+    if (action === 'add-subtask') {
+      startAddSubtask(cardId, taskId);
+      return;
+    }
+    if (action === 'cycle')    cycleStatus(cardId, taskId);
+    if (action === 'del-task') deleteTask(cardId, taskId);
+  });
+
+  board.addEventListener('change', e => {
+    if (!e.target.classList.contains('date-input')) return;
+    const cardEl = e.target.closest('.card');
+    const card = findCard(cardEl.dataset.cardId);
+    if (!card) return;
+    const newDate = e.target.value;
+    if (!newDate || newDate === card.date) return;
+    if (cards.some(c => c.id !== card.id && c.date === newDate)) {
+      e.target.value = card.date;
+      showUndo('该日期已有卡片', () => {});
+      return;
+    }
+    card.date = newDate;
+    card.l2Celebrated = false;
+    card.l3Celebrated = false;
+    saveData();
+    render();
+  });
+
+  board.addEventListener('dblclick', e => {
+    const subEl = e.target.closest('.subtask-text');
+    if (subEl) {
+      const subtaskEl = subEl.closest('.subtask');
+      const taskEl = subEl.closest('.task');
+      const cardEl = subEl.closest('.card');
+      startEditSubtask(cardEl.dataset.cardId, taskEl.dataset.taskId,
+                       subtaskEl.dataset.subtaskId, subEl);
+      return;
+    }
+    const textEl = e.target.closest('.task-text');
+    if (!textEl) return;
+    const taskEl = textEl.closest('.task');
+    const cardEl = textEl.closest('.card');
+    startEdit(cardEl.dataset.cardId, taskEl.dataset.taskId, textEl);
+  });
+
+  board.addEventListener('dragstart', e => {
+    const taskEl = e.target.closest('.task');
+    if (!taskEl) return;
+    if (e.target.closest('.subtasks')) {
+      e.preventDefault();
+      return;
+    }
+    const cardEl = taskEl.closest('.card');
+    dragSource = { cardId: cardEl.dataset.cardId, taskId: taskEl.dataset.taskId };
+    taskEl.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', taskEl.dataset.taskId); } catch {}
+  });
+
+  board.addEventListener('dragend', e => {
+    const taskEl = e.target.closest('.task');
+    if (taskEl) taskEl.classList.remove('dragging');
+    if (dragSource) { dragSource = null; render(); }
+  });
+
+  board.addEventListener('dragover', e => {
+    const list = e.target.closest('.task-list');
+    if (!list) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const dragging = board.querySelector('.task.dragging');
+    if (!dragging) return;
+    const after = getDragAfterElement(list, e.clientY);
+    if (after == null) list.appendChild(dragging);
+    else list.insertBefore(dragging, after);
+  });
+
+  board.addEventListener('drop', e => {
+    const list = e.target.closest('.task-list');
+    if (!list) return;
+    e.preventDefault();
+    finalizeDrop(list);
+  });
+
+  function getDragAfterElement(list, y) {
+    const els = [...list.querySelectorAll('.task:not(.dragging)')];
+    let closest = { offset: -Infinity, el: null };
+    for (const el of els) {
+      const box = el.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) closest = { offset, el };
+    }
+    return closest.el;
+  }
+
+  function finalizeDrop(listEl) {
+    if (!dragSource) return;
+    const { taskId } = dragSource;
+    let task = null;
+    for (const c of cards) {
+      const i = c.tasks.findIndex(t => t.id === taskId);
+      if (i >= 0) { task = c.tasks[i]; c.tasks.splice(i, 1); break; }
+    }
+    if (!task) { dragSource = null; render(); return; }
+    const targetCardId = listEl.closest('.card').dataset.cardId;
+    const target = findCard(targetCardId);
+    if (!target) { dragSource = null; render(); return; }
+    const domIds = [...listEl.querySelectorAll('.task')].map(el => el.dataset.taskId);
+    const map = new Map(target.tasks.map(t => [t.id, t]));
+    map.set(task.id, task);
+    const nextTasks = [];
+    for (const id of domIds) {
+      if (map.has(id)) { nextTasks.push(map.get(id)); map.delete(id); }
+    }
+    for (const t of map.values()) nextTasks.push(t);
+    target.tasks = nextTasks;
+    target.l2Celebrated = false;
+    target.l3Celebrated = false;
+    dragSource = null;
+    saveData();
+    render();
+  }
+
+  thumbBar.addEventListener('click', e => {
+    const dot = e.target.closest('.thumb-dot');
+    if (!dot) return;
+    scrollToCard(dot.dataset.cardId);
+  });
+
+  function updateVisibleDots() {
+    const dots = thumbBar.querySelectorAll('.thumb-dot');
+    if (dots.length === 0) return;
+    const sl = board.scrollLeft;
+    const sr = sl + board.clientWidth;
+    dots.forEach(dot => {
+      const cardEl = board.querySelector(`.card[data-card-id="${dot.dataset.cardId}"]`);
+      if (!cardEl) { dot.classList.remove('visible'); return; }
+      const left = cardEl.offsetLeft;
+      const right = left + cardEl.offsetWidth;
+      if (right > sl && left < sr) dot.classList.add('visible');
+      else dot.classList.remove('visible');
+    });
+  }
+
+  function updateScrollbar() {
+    const contentW = board.scrollWidth;
+    const viewW    = board.clientWidth;
+    if (contentW <= viewW + 1) {
+      hscroll.classList.remove('visible');
+      return;
+    }
+    hscroll.classList.add('visible');
+    const trackW = hscrollTrack.clientWidth;
+    const thumbW = Math.max(44, (viewW / contentW) * trackW);
+    const maxLeft = trackW - thumbW;
+    const maxScroll = contentW - viewW;
+    const left = maxScroll > 0 ? (board.scrollLeft / maxScroll) * maxLeft : 0;
+    hscrollThumb.style.width = thumbW + 'px';
+    hscrollThumb.style.transform = `translateX(${left}px)`;
+  }
+
+  board.addEventListener('scroll', () => {
+    updateScrollbar();
+    updateVisibleDots();
+  }, { passive: true });
+  window.addEventListener('resize', () => {
+    updateScrollbar();
+    updateVisibleDots();
+  });
+
+  let thumbDrag = null;
+  hscrollThumb.addEventListener('mousedown', e => {
+    e.preventDefault();
+    thumbDrag = { startX: e.clientX, startScroll: board.scrollLeft };
+    hscrollThumb.classList.add('dragging');
+    document.addEventListener('mousemove', onThumbMove);
+    document.addEventListener('mouseup', onThumbUp);
+  });
+  function onThumbMove(e) {
+    if (!thumbDrag) return;
+    const trackW = hscrollTrack.clientWidth;
+    const thumbW = hscrollThumb.offsetWidth;
+    const maxLeft = trackW - thumbW;
+    const maxScroll = board.scrollWidth - board.clientWidth;
+    if (maxLeft <= 0) return;
+    const dx = e.clientX - thumbDrag.startX;
+    board.scrollLeft = thumbDrag.startScroll + (dx / maxLeft) * maxScroll;
+  }
+  function onThumbUp() {
+    thumbDrag = null;
+    hscrollThumb.classList.remove('dragging');
+    document.removeEventListener('mousemove', onThumbMove);
+    document.removeEventListener('mouseup', onThumbUp);
+  }
+  hscrollTrack.addEventListener('mousedown', e => {
+    if (e.target === hscrollThumb) return;
+    const rect = hscrollTrack.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const trackW = hscrollTrack.clientWidth;
+    const thumbW = hscrollThumb.offsetWidth;
+    const maxLeft = trackW - thumbW;
+    if (maxLeft <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clickX - thumbW / 2) / maxLeft));
+    board.scrollLeft = ratio * (board.scrollWidth - board.clientWidth);
+  });
+
+  board.addEventListener('wheel', e => {
+    const list = e.target.closest('.task-list');
+    if (list && list.scrollHeight > list.clientHeight) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      board.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  addCardBtn.addEventListener('click', addCard);
+  todayBtn.addEventListener('click', scrollToToday);
+
+  deleteAllBtn.addEventListener('click', () => {
+    if (cards.length === 0) return;
+    if (!confirm(`删除全部 ${cards.length} 张卡片？此操作不可撤销。`)) return;
+    cards = [
+      { id: uid(), date: todayISO(),    tasks: [] },
+      { id: uid(), date: tomorrowISO(), tasks: [] }
+    ];
+    archiveExpanded = false;
+    saveData();
+    render();
+    scrollToToday();
+  });
+
+  let calYear, calMonth;
+  let calOpen = false;
+
+  function openCalendar() {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    renderCalendar();
+    const rect = calendarBtn.getBoundingClientRect();
+    calPopup.style.top  = (rect.bottom + 8) + 'px';
+    calPopup.style.right = (window.innerWidth - rect.right) + 'px';
+    calPopup.hidden = false;
+    calOpen = true;
+  }
+  function closeCalendar() { calPopup.hidden = true; calOpen = false; }
+
+  function renderCalendar() {
+    calTitle.textContent = `${calYear}年${calMonth + 1}月`;
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const todayStr = todayISO();
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += `<span class="cal-day empty"></span>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const hasTask = cards.some(c => c.date === iso && c.tasks.length > 0);
+      const cls = ['cal-day'];
+      if (hasTask) cls.push('has-task');
+      if (iso === todayStr) cls.push('today');
+      html += `<span class="${cls.join(' ')}" data-date="${iso}">${d}</span>`;
+    }
+    calDays.innerHTML = html;
+  }
+  calendarBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (calOpen) closeCalendar();
+    else openCalendar();
+  });
+  calPopup.addEventListener('click', e => {
+    e.stopPropagation();
+    const nav = e.target.dataset.nav;
+    if (nav) {
+      calMonth += Number(nav);
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+      return;
+    }
+    const dayEl = e.target.closest('.cal-day');
+    if (dayEl && !dayEl.classList.contains('empty')) {
+      const iso = dayEl.dataset.date;
+      const target = cards.find(c => c.date === iso);
+      if (target) {
+        if (isArchivedDate(target.date)) archiveExpanded = true;
+        render();
+        requestAnimationFrame(() => scrollToCard(target.id));
+        closeCalendar();
+      } else {
+        showUndo(`${formatDateCN(iso)} 没有卡片`, () => {});
+      }
+    }
+  });
+  document.addEventListener('click', () => { if (calOpen) closeCalendar(); });
+
+  exportBtn.addEventListener('click', () => {
+    const data = JSON.stringify(
+      { version: 2, exportedAt: new Date().toISOString(), cards }, null, 2
+    );
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `todo-backup-${todayISO()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  importBtn.addEventListener('click', () => importFile.click());
+
+  importFile.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        const incoming = Array.isArray(parsed) ? parsed : parsed.cards;
+        if (!Array.isArray(incoming)) throw new Error('文件格式不正确');
+        const valid = incoming.filter(c =>
+          c && typeof c.id === 'string' &&
+          typeof c.date === 'string' &&
+          Array.isArray(c.tasks)
+        );
+        if (!valid.length) throw new Error('没有可用的卡片数据');
+        if (!confirm(`导入 ${valid.length} 张卡片？当前数据将被替换。`)) {
+          e.target.value = '';
+          return;
+        }
+        cards = valid.map(c => ({
+          id: c.id,
+          date: c.date,
+          collapsed: !!c.collapsed,
+          tasks: c.tasks
+            .filter(t => t && typeof t.text === 'string')
+            .map(t => ({
+              id: t.id || uid(),
+              text: t.text,
+              status: STATUSES.includes(t.status) ? t.status : 'todo',
+              expanded: !!t.expanded,
+              subtasks: Array.isArray(t.subtasks)
+                ? t.subtasks
+                    .filter(s => s && typeof s.text === 'string')
+                    .map(s => ({ id: s.id || uid(), text: s.text, done: !!s.done }))
+                : []
+            }))
+        }));
+        saveData();
+        render();
+        scrollToToday();
+      } catch (err) {
+        alert('导入失败：' + err.message);
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+    try { localStorage.setItem(THEME_KEY, t); } catch {}
+  }
+  themeBtn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  document.addEventListener('keydown', e => {
+    const el = document.activeElement;
+    const tag = el && el.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+
+    if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      const todayCard = cards.find(c => c.date === todayISO());
+      if (todayCard) {
+        if (todayCard.collapsed) {
+          todayCard.collapsed = false;
+          saveData();
+          render();
+        }
+        scrollToToday();
+        requestAnimationFrame(() => startAddTask(todayCard.id));
+      } else {
+        scrollToToday();
+      }
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      board.scrollBy({ left: -400, behavior: 'smooth' });
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      board.scrollBy({ left: 400, behavior: 'smooth' });
+    }
+    if (e.key === 'Escape') {
+      if (calOpen) closeCalendar();
+    }
+  });
+
+  function init() {
+    const savedTheme = localStorage.getItem(THEME_KEY)
+      || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(savedTheme);
+
+    // 音效状态
+    soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
+    updateSoundBtn();
+
+    const saved = loadData();
+    if (saved && saved.length) {
+      cards = saved.map(c => ({
+        ...c,
+        tasks: (c.tasks || []).map(t => ({
+          ...t,
+          subtasks: Array.isArray(t.subtasks) ? t.subtasks : [],
+          expanded: !!t.expanded
+        })),
+        l2Celebrated: !!c.l2Celebrated,
+        l3Celebrated: !!c.l3Celebrated
+      }));
+    } else {
+      cards = [
+        { id: uid(), date: todayISO(),    tasks: [] },
+        { id: uid(), date: tomorrowISO(), tasks: [] }
+      ];
+    }
+
+    render();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToToday);
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
